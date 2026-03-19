@@ -1,0 +1,60 @@
+# Environment
+.env
+.env.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+
+# Build / dist
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Runs and outputs
+runs/
+*.db
+
+# IDE / editor
+.idea/
+.vscode/
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Junk / artifacts (run outputs, search results, etc.)
+*_results*.txt
+*_results*.html
+*_results*.json
+api_keys*.txt
+*api_key*.txt
+find_*.md
+search_results*
+task_description.txt
+security_measures.txt
+report.txt
+findings.txt
+results.*
+response.txt
+result.txt
+keys.txt
+found_*.txt
+legal_*.txt
+risk_*.txt
+no_*.txt
+prohibition.txt
+api_docs.md
+api_usage_guidelines.txt

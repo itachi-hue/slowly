@@ -1,0 +1,22 @@
+# --- Providers ---
+OLLAMA_BASE_URL=http://localhost:11434
+ACTIVE_BACKEND=ollama
+
+# --- Models ---
+PRIMARY_MODEL=qwen2.5:7b
+FAST_MODEL=qwen2.5:3b
+
+GROQ_API_KEY=
+GROQ_PRIMARY_MODEL=groq/llama-3.3-70b-versatile
+GROQ_FAST_MODEL=groq/llama-3.1-8b-instant
+
+# --- Search ---
+TAVILY_API_KEY=
+
+# --- Run Parameters ---
+TIME_BUDGET_MINUTES=480
+MAX_ITERATIONS=10
+MIN_SCORE_IMPROVEMENT=0.02
+TARGET_SCORE=0.92
+MAX_PARALLEL_AGENTS=3
+
