@@ -36,6 +36,7 @@ Thumbs.db
 *.log
 
 # Junk / artifacts (run outputs, search results, etc.)
+final_summary.txt
 *_results*.txt
 *_results*.html
 *_results*.json
@@ -58,3 +59,5 @@ no_*.txt
 prohibition.txt
 api_docs.md
 api_usage_guidelines.txt
+final_summary.txt
+final_summary.txt

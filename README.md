@@ -6,11 +6,105 @@ Multi-agent research system that runs **slow, iterative, critique-driven** resea
 
 ## Architecture
 
+### Simple overview
+
+**In plain English:** You ask a research question. Slowly breaks it into sub-questions, answers each (using web search and tools), and merges everything into a report. If an answer raises new questions, it digs deeper. It repeats until the answer is good enough.
+
 ```
-decompose → execute → synthesize → evaluate → [iterate | finalize]
-                    ↑__________________________|
-                              (critique)
+         "Best investors for voice AI?"
+                         │
+                         ▼
+              ┌─────────────────────┐
+              │  Break into tasks   │  ← Orchestrator
+              └─────────────────────┘
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+    "Who are top    "What do they   "Top voice AI
+     VCs?"           invest in?"     funds?"
+          │              │              │
+          │         (needs more?)        │
+          │              │              │
+          │        ┌─────┴─────┐        │
+          │        ▼           ▼        │
+          │   "Example deals"  "Typical │
+          │                   check"   │
+          └──────────┬────────────────┘
+                     ▼
+              ┌─────────────────────┐
+              │  Merge → Report     │  ← Synthesizer
+              └─────────────────────┘
+                     │
+                     ▼
+              Score & critique → improve → repeat or done
 ```
+
+### Iteration Graph (LangGraph)
+
+The main flow is a **state graph** that runs one iteration at a time, conditionally looping until done:
+
+```
+                    ┌──────────────────────────┐
+                    │                          │
+                    ▼                          │
+    ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐     ┌───────────┐
+    │ decompose │──▶│ execute  │──▶│synthesize│──▶│ evaluate │────▶│  iterate  │
+    └──────────┘   └──────────┘   └──────────┘   └──────────┘     └───────────┘
+          ▲                │            │              │                  │
+          │                │            │              │                  │
+          │                │            │              │    (continue?)   │
+          │                │            │              ▼                  │
+          │                │            │         ┌──────────┐            │
+          │                │            │         │finalize  │            │
+          │                │            │         └────┬─────┘            │
+          │                │            │              │                  │
+          └────────────────┴────────────┴──────────────┴──────────────────┘
+                           critique feeds back into next iteration
+```
+
+- **decompose** – Orchestrator breaks the problem (and prior critique) into tasks
+- **execute** – Runs the task tree (see below); produces outputs
+- **synthesize** – Merges outputs into one report
+- **evaluate** – Scores quality, produces critique; decides: iterate or finalize
+- **iterate** – Increment iteration, loop back to decompose
+- **finalize** – Produce final synthesis, end
+
+### Task Tree (within execute)
+
+Inside each execution step, tasks form a **dynamic tree**. Here’s the idea in plain terms:
+
+**Example:** *"Who are the best investors for voice AI startups?"*
+
+```
+                    YOUR QUESTION
+                          │
+         ┌────────────────┼────────────────┐
+         ▼                ▼                ▼
+    "Top 5 VCs?"    "What do they     "Example deals?"
+                    invest in?"
+         │                │                │
+         │           ┌────┴────┐           │
+         │           ▼         ▼           │
+         │      "Typical   "Check sizes"    │
+         │      sectors"                    │
+         └────────────┼─────────────────────┘
+                      ▼
+              All answers merged
+                      ▼
+              One research report
+```
+
+- **Step 1:** Orchestrator breaks the question into 3–10 sub-questions.
+- **Step 2:** Workers/Research agents answer each (web search, code, etc.).
+- **Step 3:** If an answer suggests new questions (“What sectors?”), those become child tasks.
+- **Step 4:** All task outputs are merged into one synthesis.
+
+**Technical details:**
+
+1. **Root tasks** – Orchestrator produces top-level tasks (depth 1)
+2. **Child tasks** – If a task’s output has `open_questions`, those become child tasks (depth 2, 3, …)
+3. **Parallel execution** – Tasks run in waves; a semaphore limits concurrency
+4. **Expansion limits** – Tree stops when: `max_task_depth`, `max_total_tasks`, time budget, or wrap-up buffer is hit
 
 - **Orchestrator** – Breaks the problem into parallel tasks (research / worker)
 - **Workers & Research agents** – Use tools: web search, fetch page, run_command, read/write/search_replace files
