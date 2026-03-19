@@ -8,35 +8,39 @@ Multi-agent research system that runs **slow, iterative, critique-driven** resea
 
 ### Simple overview
 
-**In plain English:** You ask a research question. Slowly breaks it into sub-questions, answers each (using web search and tools), and merges everything into a report. If an answer raises new questions, it digs deeper. It repeats until the answer is good enough.
+**In plain English:** You ask a research question. Slowly **goes down the tree** (decompose → tasks → sub-tasks → deeper), then **bubbles back up** (all outputs merge into a single synthesis). It repeats until the answer is good enough.
 
 ```
-         "Best investors for voice AI?"
-                         │
-                         ▼
-              ┌─────────────────────┐
-              │  Break into tasks   │  ← Orchestrator
-              └─────────────────────┘
-                         │
-          ┌──────────────┼──────────────┐
-          ▼              ▼              ▼
-    "Who are top    "What do they   "Top voice AI
-     VCs?"           invest in?"     funds?"
-          │              │              │
-          │         (needs more?)        │
-          │              │              │
-          │        ┌─────┴─────┐        │
-          │        ▼           ▼        │
-          │   "Example deals"  "Typical │
-          │                   check"   │
-          └──────────┬────────────────┘
-                     ▼
-              ┌─────────────────────┐
-              │  Merge → Report     │  ← Synthesizer
-              └─────────────────────┘
-                     │
-                     ▼
-              Score & critique → improve → repeat or done
+                    "Best investors for voice AI?"
+                                │
+                                ▼  go down
+                    ┌─────────────────────┐
+                    │   Decompose         │  ← Orchestrator
+                    └─────────────────────┘
+                                │
+                   ┌────────────┼────────────┐
+                   ▼            ▼            ▼
+             "Top VCs?"   "What sectors?"  "Example deals?"
+                   │            │            │
+                   │      ┌─────┴─────┐      │
+                   │      ▼           ▼      │   go deeper
+                   │  "Typical   "Check size" │
+                   │   sectors"               │
+                   └──────────┬───────────────┘
+                              │
+                         leaf outputs
+                              │
+                              ▲  bubble up
+                              │
+                    ┌─────────┴─────────┐
+                    │   Synthesize     │  ← merge all outputs
+                    └─────────┬─────────┘
+                              │
+                              ▼
+                    Final report
+                              │
+                              ▼
+                    Evaluate → iterate or done
 ```
 
 ### Iteration Graph (LangGraph)
@@ -78,18 +82,24 @@ Inside each execution step, tasks form a **dynamic tree**. Here’s the idea in 
 ```
                     YOUR QUESTION
                           │
+                          ▼  go down
          ┌────────────────┼────────────────┐
          ▼                ▼                ▼
     "Top 5 VCs?"    "What do they     "Example deals?"
                     invest in?"
          │                │                │
          │           ┌────┴────┐           │
-         │           ▼         ▼           │
+         │           ▼         ▼           │   go deeper
          │      "Typical   "Check sizes"    │
          │      sectors"                    │
          └────────────┼─────────────────────┘
-                      ▼
+                      │
+                 leaf outputs
+                      │
+                      ▲  bubble up
+                      │
               All answers merged
+                      │
                       ▼
               One research report
 ```
@@ -97,7 +107,7 @@ Inside each execution step, tasks form a **dynamic tree**. Here’s the idea in 
 - **Step 1:** Orchestrator breaks the question into 3–10 sub-questions.
 - **Step 2:** Workers/Research agents answer each (web search, code, etc.).
 - **Step 3:** If an answer suggests new questions (“What sectors?”), those become child tasks.
-- **Step 4:** All task outputs are merged into one synthesis.
+- **Step 4:** All task outputs **bubble back up** and merge into one synthesis.
 
 **Technical details:**
 
