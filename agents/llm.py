@@ -8,6 +8,7 @@ import time
 from typing import Any, Callable, Optional
 
 import requests
+from pathlib import Path
 from dotenv import load_dotenv
 
 
@@ -44,6 +45,8 @@ def _best_effort_json(s: str) -> Any:
 def _get_backend(model: str) -> str:
     if model and model.startswith("groq/"):
         return "groq"
+    if model and model.startswith("openai/"):
+        return "openai"
     return os.getenv("ACTIVE_BACKEND", "ollama")
 
 
@@ -118,6 +121,23 @@ def _call_groq_chat(messages: list[dict], model: str, temperature: float, max_to
     return resp.choices[0].message.content.strip()
 
 
+def _call_openai_chat(messages: list[dict], model: str, temperature: float, max_tokens: int) -> str:
+    from openai import OpenAI  # type: ignore
+
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is not set")
+    client = OpenAI(api_key=api_key)
+    model_name = model.replace("openai/", "")
+    resp = client.chat.completions.create(
+        model=model_name,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    return resp.choices[0].message.content.strip()
+
+
 def _is_transient(e: BaseException) -> bool:
     """True for errors worth retrying (404, timeout, connection, 5xx, 413 TPM)."""
     if isinstance(e, (requests.exceptions.Timeout, requests.exceptions.ConnectionError)):
@@ -154,6 +174,8 @@ async def call_llm(
 
     for attempt in range(max_retries + 1):
         try:
+            if backend == "openai":
+                return await asyncio.to_thread(_call_openai_chat, messages, model, temperature, max_tokens)
             if backend == "groq":
                 return await asyncio.to_thread(_call_groq_chat, messages, model, temperature, max_tokens)
             base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -291,7 +313,8 @@ async def call_agent_with_tools(
 
 
 def load_env() -> None:
-    # .env may be blocked; load if present.
-    load_dotenv(override=False)
+    # Load .env from the project directory (where this file lives)
+    env_path = Path(__file__).parent.parent / ".env"
+    load_dotenv(env_path, override=False)
 
 

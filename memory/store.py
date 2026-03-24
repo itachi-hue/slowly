@@ -9,6 +9,14 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
+# Re-export new task tree models for convenience
+from memory.redis_store import (
+    SlotDef,
+    TaskDefinition,
+    TaskOutput as TreeTaskOutput,
+    extract_slot_references,
+)
+
 
 class TaskOutput(BaseModel):
     task_id: str
